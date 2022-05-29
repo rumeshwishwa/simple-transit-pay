@@ -1,0 +1,5 @@
+file:
+  read:
+    name: testdata.csv
+  write:
+    name: testdata-results.csv
