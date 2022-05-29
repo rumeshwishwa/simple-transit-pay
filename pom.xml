@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.rumesh</groupId>
 	<artifactId>simple-transit-pay</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>Simple Transit Pay</name>
 	<description>Demo project for simple transit pay application</description>
 	<properties>
