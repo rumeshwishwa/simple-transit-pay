@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class can be used to read data from a csv file and will be returns the data as EntryRecord list
+ * Class can be used to read data from a csv file and will be returns the data as Specified Object List
  *
  * @author Rumesh
  */
@@ -24,10 +24,10 @@ import java.util.List;
 public class CsvFileReaderService<T> {
 
     /**
-     * Method is mainly reads the data from the specified file and returns as list of EntryRecords
+     * Method is mainly reads the data from the specified file and returns the Specified Object List
      *
      * @param file file path that input data resides
-     * @@return List<EntryRecord> returns line count that written in to the file as a integer
+     * @return returns Specified Object List
      * @author Rumesh
      */
     public List<T> read(String file, RecordConvertable<T> recordConvertable) {

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Class can be used to write list of TripRecord data in to a csv file
+ * Class can be used to write list of Specified Records data in to a csv file
  *
  * @author Rumesh
  */
@@ -25,11 +25,11 @@ public class CsvFileWriterService<T> {
 
 
     /**
-     * Class can be used to write TripRecord list in to csv file
+     * Class can be used to write Specified Records list in to csv file
      *
-     * @param records List of Trip Records that need to be written in to the csv file
+     * @param records List of Specified Records that need to be written in to the csv file
      * @param file        file path that trip records should be written
-     * @@return int returns line count that written in to the file as a integer
+     * @return int returns line count that written in to the file as a integer
      * @author Rumesh
      */
     public int write(List<T> records, String file, StringConvertable<T> stringConvertable) {

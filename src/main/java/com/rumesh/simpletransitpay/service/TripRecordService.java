@@ -57,7 +57,7 @@ public class TripRecordService {
     /**
      * execution of trip cost calculation process
      */
-    public void execute() {
+    public void executeTripCostCalculation() {
         log.info("Trip cost calculation process started..");
         final List<EntryRecord> records = csvFileReaderService.read(configProperties.getReadFileName(), entryRecordConverter);
         log.info("{} entry records found in the input file", records.size());
