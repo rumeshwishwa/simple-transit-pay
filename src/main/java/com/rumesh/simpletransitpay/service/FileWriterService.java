@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface FileWriterService<T> {
 
-    void write(List<TripRecord> tripRecords,String file);
+    int write(List<TripRecord> tripRecords,String file);
     boolean isApplicable(FileType fileType);
 
 }

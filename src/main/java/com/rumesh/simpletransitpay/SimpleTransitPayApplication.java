@@ -9,8 +9,11 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class SimpleTransitPayApplication {
 
-    @Autowired
-    private TripRecordService tripRecordService;
+    private final TripRecordService tripRecordService;
+
+    public SimpleTransitPayApplication(TripRecordService tripRecordService) {
+        this.tripRecordService = tripRecordService;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(SimpleTransitPayApplication.class, args);

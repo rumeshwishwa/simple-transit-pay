@@ -1,5 +1,6 @@
 package com.rumesh.simpletransitpay.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -11,9 +12,14 @@ import java.util.Optional;
  * Act as a cache for the price list.
  * Will be loaded prices for each journey starting point and end point.
  *
+ *  This can be proper cache implementation like redis or hazelcast
+ *  instead of simple map in a production
+ *  Original Price details should be stored in a DB
+ *
  * @author Rumesh
  */
 
+@Slf4j
 @Service
 public class PriceListCacheService {
 
@@ -37,6 +43,7 @@ public class PriceListCacheService {
      * @return cost of the journey
      */
     public Double getPrice(String stopId1, String stopId2) {
+        log.info("Get price -> StopId 1: {} , StopId 2: {}", stopId1, stopId1);
         return Optional
                 .ofNullable(this.priceList.get(getKey(stopId1, stopId2)))
                 .orElse(0.0);
@@ -51,6 +58,7 @@ public class PriceListCacheService {
      * @param price   price between param 1 and param 2
      */
     public void setPrice(String stopId1, String stopId2, Double price) {
+        log.info("Set price -> StopId 1: {} , StopId 2: {} , Price: {}", stopId1, stopId1, price);
         this.priceList.put(getKey(stopId1, stopId2), price);
     }
 
@@ -62,6 +70,7 @@ public class PriceListCacheService {
      * @return key
      */
     public String getKey(String stopId1, String stopId2) {
+        log.info("Get key -> StopId 1: {} , StopId 2: {}", stopId1, stopId1);
         return stopId1 + "-" + stopId2;
     }
 }
