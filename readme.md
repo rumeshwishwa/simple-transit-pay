@@ -28,6 +28,12 @@ execution steps
 
 4. run the application
 
+if host computer using linux based os then,
 ``` 
- ./run.sh <input-csv-file-path> <output-csv-file-path>
+ ./run.sh <output-csv-file-path>
+```
+
+if host computer using windows
+``` 
+ run.bat <output-csv-file-path>
 ```
