@@ -1,9 +1,11 @@
 package com.rumesh.simpletransitpay.service;
 
+import com.rumesh.simpletransitpay.converter.EntryRecordConverter;
 import com.rumesh.simpletransitpay.exception.CsvFileReadException;
-import com.rumesh.simpletransitpay.types.FileType;
+import com.rumesh.simpletransitpay.model.EntryRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,31 +13,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 public class CsvFileReaderServiceTest {
 
-    private CsvFileReaderService csvFileReaderService;
+    @Mock
+    private EntryRecordConverter entryRecordConverter;
+
+    private CsvFileReaderService<EntryRecord> csvFileReaderService;
 
     @BeforeEach
     void setUp() {
-        csvFileReaderService = new CsvFileReaderService();
+        csvFileReaderService = new CsvFileReaderService<>();
     }
 
     @Test
     void givenIncorrectFileNameThenFailedAndThrowCsvFileReadException() {
         CsvFileReadException exception = assertThrows(CsvFileReadException.class,
-                () -> csvFileReaderService.read("not-found-file.csv"));
+                () -> csvFileReaderService.read("not-found-file.csv", entryRecordConverter));
     }
 
     @Test
     void givenProperFileNameThenSuccessAndReturnEntryRecords() {
-        csvFileReaderService.read("testdata.csv");
-    }
-
-    @Test
-    void givenCsvFileTypeThenSuccessAndReturnTrue() {
-        csvFileReaderService.isApplicable(FileType.CSV);
-    }
-
-    @Test
-    void givenOtherFileTypeThenSuccessAndReturnFalse() {
-        csvFileReaderService.isApplicable(FileType.EXCEL);
+        csvFileReaderService.read("testdata.csv", entryRecordConverter);
     }
 }

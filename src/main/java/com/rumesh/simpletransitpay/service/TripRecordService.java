@@ -1,6 +1,8 @@
 package com.rumesh.simpletransitpay.service;
 
 import com.rumesh.simpletransitpay.config.ConfigProperties;
+import com.rumesh.simpletransitpay.converter.EntryRecordConverter;
+import com.rumesh.simpletransitpay.converter.TripRecordStringConverter;
 import com.rumesh.simpletransitpay.model.EntryRecord;
 import com.rumesh.simpletransitpay.model.TripRecord;
 import com.rumesh.simpletransitpay.types.TripStatus;
@@ -9,6 +11,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,20 +29,29 @@ public class TripRecordService {
 
     private final UserCacheService userCacheService;
     private final PriceListCacheService priceListCacheService;
-    private final CsvFileReaderService csvFileReaderService;
-    private final CsvFileWriterService csvFileWriterService;
+    private final MaximumTravelLocationCache maximumTravelLocationCache;
+    private final CsvFileReaderService<EntryRecord> csvFileReaderService;
+    private final CsvFileWriterService<TripRecord> csvFileWriterService;
     private final ConfigProperties configProperties;
+    private final EntryRecordConverter entryRecordConverter;
+    private final TripRecordStringConverter tripRecordStringConverter;
 
     public TripRecordService(final UserCacheService userCacheService,
                              final PriceListCacheService priceListCacheService,
+                             final MaximumTravelLocationCache maximumTravelLocationCache,
                              final CsvFileReaderService csvFileReaderService,
                              final CsvFileWriterService csvFileWriterService,
-                             final ConfigProperties configProperties) {
+                             final ConfigProperties configProperties,
+                             final EntryRecordConverter entryRecordConverter,
+                             final TripRecordStringConverter tripRecordStringConverter) {
         this.userCacheService = userCacheService;
         this.priceListCacheService = priceListCacheService;
+        this.maximumTravelLocationCache = maximumTravelLocationCache;
         this.csvFileReaderService = csvFileReaderService;
         this.csvFileWriterService = csvFileWriterService;
         this.configProperties = configProperties;
+        this.entryRecordConverter = entryRecordConverter;
+        this.tripRecordStringConverter = tripRecordStringConverter;
     }
 
     /**
@@ -47,8 +59,8 @@ public class TripRecordService {
      */
     public void execute() {
         log.info("Trip cost calculation process started..");
-        final List<EntryRecord> records = csvFileReaderService.read(configProperties.getReadFileName());
-        log.info("{} entry records found in the input file",records.size());
+        final List<EntryRecord> records = csvFileReaderService.read(configProperties.getReadFileName(), entryRecordConverter);
+        log.info("{} entry records found in the input file", records.size());
         List<TripRecord> tripRecords = records.stream()
                 .filter(this::isStartRecordAvailable)
                 .map(this::getCancelledOrCompletedTripRecord)
@@ -58,8 +70,8 @@ public class TripRecordService {
                 .stream()
                 .map(entryRecord -> this.getCalculatedTripRecord(entryRecord, null, TripStatus.INCOMPLETE))
                 .forEach(tripRecords::add);
-        log.info("Total trip record count: {}",tripRecords.size());
-        csvFileWriterService.write(tripRecords, configProperties.getWriteFileName());
+        log.info("Total trip record count: {}", tripRecords.size());
+        csvFileWriterService.write(tripRecords, configProperties.getWriteFileName(), tripRecordStringConverter);
     }
 
     /**
@@ -82,13 +94,31 @@ public class TripRecordService {
                 .busId(startRecord.getBusID())
                 .pan(startRecord.getPan());
         return Optional.ofNullable(endRecord)
-                .map(eRecord -> recordBuilder
-                        .endTime(eRecord.getRecordedTime())
-                        .duration(Duration.between(startRecord.getRecordedTime(), eRecord.getRecordedTime()).getSeconds())
-                        .toStopId(eRecord.getStopId())
-                        .chargeAmount(priceListCacheService.getPrice(startRecord.getStopId(), eRecord.getStopId())))
-                .orElse(recordBuilder)
+                .map(eRecord -> mapCompletedOrCancelledTripRecord(recordBuilder, startRecord, eRecord))
+                .orElseGet(() -> mapIncompleteTripRecord(recordBuilder, startRecord))
                 .build();
+    }
+
+    private TripRecord.TripRecordBuilder mapCompletedOrCancelledTripRecord(TripRecord.TripRecordBuilder recordBuilder,
+                                                                           EntryRecord startRecord,
+                                                                           EntryRecord endRecord) {
+        return recordBuilder
+                .endTime(endRecord.getRecordedTime())
+                .duration(Duration.between(startRecord.getRecordedTime(), endRecord.getRecordedTime()).getSeconds())
+                .toStopId(endRecord.getStopId())
+                .chargeAmount(priceListCacheService.getPrice(startRecord.getStopId(), endRecord.getStopId()));
+    }
+
+    private TripRecord.TripRecordBuilder mapIncompleteTripRecord(TripRecord.TripRecordBuilder recordBuilder,
+                                                                  EntryRecord startRecord) {
+        log.info("Trip record incomplete status INCOMPLETE (null) mapping: pan -> {} , busId: {}",
+                startRecord.getPan(),startRecord.getBusID());
+        final String maxTravel = maximumTravelLocationCache.getMaxTravel(startRecord.getStopId());
+        return recordBuilder
+                .endTime(LocalDateTime.now())
+                .duration(Duration.between(startRecord.getRecordedTime(), LocalDateTime.now()).getSeconds())
+                .toStopId(maxTravel)
+                .chargeAmount(priceListCacheService.getPrice(startRecord.getStopId(), maxTravel));
     }
 
     /**
@@ -98,22 +128,23 @@ public class TripRecordService {
      * @return true if input entry record has corresponding previous starting point detail else false
      */
     public boolean isStartRecordAvailable(EntryRecord entryRecord) {
-        final Optional<EntryRecord> optionalEntryRecord = Optional.ofNullable(userCacheService.get(entryRecord.getPan()));
+        final Optional<EntryRecord> optionalEntryRecord = Optional.ofNullable(userCacheService.get(entryRecord.getPan(), entryRecord.getBusID()));
         if (!optionalEntryRecord.isPresent()) {
-            userCacheService.add(entryRecord.getPan(), entryRecord);
+            userCacheService.add(entryRecord.getPan(), entryRecord.getBusID(), entryRecord);
         }
         return optionalEntryRecord.isPresent();
     }
 
     /**
      * Returns Cancelled or Completed TripRecord based on the EntryRecord and User cache
+     * Assume that always have an ON record, otherwise next record will be passenger ON record
      *
      * @param entryRecord EntryRecord details from passenger trip
      * @return TripRecord
      */
     public TripRecord getCancelledOrCompletedTripRecord(EntryRecord entryRecord) {
-        final EntryRecord startRecord = userCacheService.get(entryRecord.getPan());
-        userCacheService.remove(startRecord.getPan());
+        final EntryRecord startRecord = userCacheService.get(entryRecord.getPan(), entryRecord.getBusID());
+        userCacheService.remove(startRecord.getPan(), entryRecord.getBusID());
         if (entryRecord.getStopId().equals(startRecord.getStopId())) {
             return this.getCalculatedTripRecord(startRecord, entryRecord, TripStatus.CANCELLED);
         }

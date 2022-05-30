@@ -1,10 +1,11 @@
 package com.rumesh.simpletransitpay.service;
 
+import com.rumesh.simpletransitpay.converter.TripRecordStringConverter;
 import com.rumesh.simpletransitpay.model.TripRecord;
-import com.rumesh.simpletransitpay.types.FileType;
 import com.rumesh.simpletransitpay.types.TripStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
@@ -16,7 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 public class CsvFileWriterServiceTest {
 
-    private CsvFileWriterService csvFileWriterService;
+    @Mock
+    private TripRecordStringConverter tripRecordStringConverter;
+
+    private CsvFileWriterService<TripRecord> csvFileWriterService;
     private List<TripRecord> tripRecords;
 
     @BeforeEach
@@ -39,17 +43,8 @@ public class CsvFileWriterServiceTest {
 
     @Test
     void givenTripRecordsThenSuccessAndReturnLineCount() {
-        int lineCount = csvFileWriterService.write(tripRecords, "sample-out.csv");
+        int lineCount = csvFileWriterService.write(tripRecords, "sample-out.csv", tripRecordStringConverter);
         assertEquals(2, lineCount);
     }
 
-    @Test
-    void givenCsvFileTypeThenSuccessAndReturnTrue() {
-        csvFileWriterService.isApplicable(FileType.CSV);
-    }
-
-    @Test
-    void givenOtherFileTypePassedThenSuccessAndReturnFalse() {
-        csvFileWriterService.isApplicable(FileType.EXCEL);
-    }
 }

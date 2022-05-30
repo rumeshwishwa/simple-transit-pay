@@ -1,9 +1,9 @@
 package com.rumesh.simpletransitpay.service;
 
 import com.opencsv.CSVWriter;
+import com.rumesh.simpletransitpay.converter.StringConvertable;
 import com.rumesh.simpletransitpay.exception.CsvFileWriteException;
 import com.rumesh.simpletransitpay.model.TripRecord;
-import com.rumesh.simpletransitpay.types.FileType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -21,24 +21,23 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class CsvFileWriterService implements FileWriterService<TripRecord> {
+public class CsvFileWriterService<T> {
 
 
     /**
      * Class can be used to write TripRecord list in to csv file
      *
-     * @param tripRecords List of Trip Records that need to be written in to the csv file
+     * @param records List of Trip Records that need to be written in to the csv file
      * @param file        file path that trip records should be written
      * @@return int returns line count that written in to the file as a integer
      * @author Rumesh
      */
-    @Override
-    public int write(List<TripRecord> tripRecords, String file) {
+    public int write(List<T> records, String file, StringConvertable<T> stringConvertable) {
         log.info("Csv output file name: {}",file);
-        log.info("Final Trip Record count : {}",tripRecords.size());
+        log.info("Final Trip Record count : {}",records.size());
         try (CSVWriter writer = new CSVWriter(new OutputStreamWriter(new FileOutputStream(file)))) {
-            final List<String[]> tripRecordStringArrays = tripRecords.stream()
-                    .map(TripRecord::toStringArray)
+            final List<String[]> tripRecordStringArrays = records.stream()
+                    .map(stringConvertable::convert)
                     .collect(Collectors.toList());
             tripRecordStringArrays.add(0, new String[]{"Started", "Finished", "DurationSecs", "FromStopId", "ToStopId", "ChargeAmount",
                     "CompanyId", "BusID", "PAN", "Status"});
@@ -50,16 +49,4 @@ public class CsvFileWriterService implements FileWriterService<TripRecord> {
         }
     }
 
-    /**
-     * This method can be used to determine whether
-     * this class should be use or not to write data based on the file type
-     *
-     * @param fileType Type of the file that data should be written.
-     * @return boolean returns true if file type is CSV else returns false.
-     * @author Rumesh
-     */
-    @Override
-    public boolean isApplicable(FileType fileType) {
-        return FileType.CSV == fileType;
-    }
 }

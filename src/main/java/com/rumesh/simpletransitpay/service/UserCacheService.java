@@ -20,21 +20,25 @@ import java.util.Map;
 @Service
 public class UserCacheService {
 
-    private final Map<Long, EntryRecord> userCache = new HashMap<>();
+    private final Map<String, EntryRecord> userCache = new HashMap<>();
 
-    public void add(Long pan, EntryRecord entryRecord) {
-        this.userCache.put(pan, entryRecord);
+    public void add(Long pan, String busId, EntryRecord entryRecord) {
+        this.userCache.put(getKey(pan,busId), entryRecord);
     }
 
-    public EntryRecord get(Long pan) {
-        return this.userCache.get(pan);
+    public EntryRecord get(Long pan, String busId) {
+        return this.userCache.get(getKey(pan,busId));
     }
 
-    public void remove(Long pan) {
-        this.userCache.remove(pan);
+    public void remove(Long pan, String busId) {
+        this.userCache.remove(getKey(pan,busId));
     }
 
     public Collection<EntryRecord> values() {
         return userCache.values();
+    }
+
+    private String getKey(Long pan,String busId) {
+        return pan.toString()+busId;
     }
 }
